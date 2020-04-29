@@ -5,9 +5,10 @@
   "main": "dist/ContainerQ.js",
   "types": "dist/ContainerQ.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-all": "tsc --emitDeclarationOnly && webpack",
+    "build-types": "tsc --emitDeclarationOnly",
     "watch": "webpack --watch",
-    "build-types": "tsc --emitDeclarationOnly"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "Container",
