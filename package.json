@@ -1,6 +1,6 @@
 {
   "name": "containerq",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Easily add classes to elements based on their dimensions",
   "main": "dist/ContainerQ.js",
   "types": "dist/ContainerQ.d.ts",
@@ -9,9 +9,16 @@
     "watch": "webpack --watch",
     "build-types": "tsc --emitDeclarationOnly"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "Container",
+    "Element",
+    "Query",
+    "Queries"
+  ],
+  "repository": "https://github.com/pprg1996/containerq",
+  "bugs": "https://github.com/pprg1996/containerq/issues",
+  "author": "Pedro Rodriguez <pprg1996@gmail.com> (https://github.com/pprg1996)",
+  "license": "MIT",
   "dependencies": {
     "@juggle/resize-observer": "^3.1.3"
   },
