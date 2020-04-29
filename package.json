@@ -1,6 +1,6 @@
 {
   "name": "containerq",
-  "version": "1.0.0",
+  "version": "1.0.10",
   "description": "Easily add classes to elements based on their dimensions",
   "main": "dist/ContainerQ.js",
   "types": "dist/ContainerQ.d.ts",
