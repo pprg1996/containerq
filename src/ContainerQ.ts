@@ -139,8 +139,14 @@ class ContainerQ {
               const parent0 = entry.target.parentElement as HTMLElement;
               let size = 0;
 
-              if (alt.property === "width") size = (parent0.offsetWidth / 100) * alt.breakpoint;
-              else size = (parent0.offsetHeight / 100) * alt.breakpoint;
+              const parentPaddingLeft = Number(getComputedStyle(parent0).paddingInlineStart.slice(0, -2));
+              const parentPaddingRight = Number(getComputedStyle(parent0).paddingInlineEnd.slice(0, -2));
+              const parentPaddingTop = Number(getComputedStyle(parent0).paddingBlockStart.slice(0, -2));
+              const parentPaddingBottom = Number(getComputedStyle(parent0).paddingBlockEnd.slice(0, -2));
+
+              if (alt.property === "width")
+                size = ((parent0.offsetWidth - parentPaddingLeft - parentPaddingRight) / 100) * alt.breakpoint;
+              else size = ((parent0.offsetHeight - parentPaddingTop - parentPaddingBottom) / 100) * alt.breakpoint;
 
               this._evaluateProperty(alt, entry, size);
               break;
