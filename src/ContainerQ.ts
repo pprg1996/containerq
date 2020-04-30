@@ -26,8 +26,10 @@ interface Alteration {
   comparison: keyof typeof Comparison;
   breakpoint: number;
   unit: keyof typeof Unit;
-  newClass: string;
+  onQueryActive: string | Function;
+  onQueryInactive: Function | undefined;
   queryId: number;
+  active: boolean;
 }
 
 interface QueryDescription {
@@ -56,17 +58,51 @@ class ContainerQ {
     }
   }
 
+  private _changeAltActiveState(element: Element, altToToggle: Alteration, activation: boolean) {
+    let breakLoop = false;
+
+    for (let qd of this._queryList) {
+      if (qd.element === element) {
+        for (let alt of qd.alterations) {
+          if (alt === altToToggle) alt.active = activation;
+          breakLoop = true;
+          break;
+        }
+      }
+    }
+  }
+
   private _evaluateProperty(alt: Alteration, entry: ResizeObserverEntry, size: number) {
     switch (alt.property) {
       case "width":
         if (this._compare(entry.borderBoxSize[0].inlineSize, alt.comparison, size)) {
-          entry.target.classList.add(alt.newClass);
-        } else entry.target.classList.remove(alt.newClass);
+          if (typeof alt.onQueryActive === "string") entry.target.classList.add(alt.onQueryActive);
+          else if (!alt.active) {
+            alt.onQueryActive();
+          }
+
+          this._changeAltActiveState(entry.target, alt, true);
+        } else {
+          if (typeof alt.onQueryActive === "string") entry.target.classList.remove(alt.onQueryActive);
+          if (typeof alt.onQueryInactive === "function" && alt.active) alt.onQueryInactive();
+
+          this._changeAltActiveState(entry.target, alt, false);
+        }
         break;
       case "height":
         if (this._compare(entry.borderBoxSize[0].blockSize, alt.comparison, size)) {
-          entry.target.classList.add(alt.newClass);
-        } else entry.target.classList.remove(alt.newClass);
+          if (typeof alt.onQueryActive === "string") entry.target.classList.add(alt.onQueryActive);
+          else if (!alt.active) {
+            alt.onQueryActive();
+          }
+
+          this._changeAltActiveState(entry.target, alt, true);
+        } else {
+          if (typeof alt.onQueryActive === "string") entry.target.classList.remove(alt.onQueryActive);
+          if (typeof alt.onQueryInactive === "function" && alt.active) alt.onQueryInactive();
+
+          this._changeAltActiveState(entry.target, alt, false);
+        }
         break;
       default:
         break;
@@ -122,7 +158,8 @@ class ContainerQ {
     comparison: keyof typeof Comparison,
     breakpoint: number,
     unit: keyof typeof Unit,
-    newClass: string,
+    onQueryActive: string | Function,
+    onQueryInactive?: Function,
   ): number {
     const queryId = this._querySum;
     this._querySum++;
@@ -131,12 +168,32 @@ class ContainerQ {
     if (queryIndex === -1) {
       this._queryList.push({
         element,
-        alterations: [{ property, comparison, breakpoint, unit, newClass, queryId }],
+        alterations: [
+          {
+            property,
+            comparison,
+            breakpoint,
+            unit,
+            onQueryActive,
+            onQueryInactive,
+            queryId,
+            active: false,
+          },
+        ],
       });
 
       this._ro.observe(element);
     } else {
-      this._queryList[queryIndex].alterations.push({ property, comparison, breakpoint, unit, newClass, queryId });
+      this._queryList[queryIndex].alterations.push({
+        property,
+        comparison,
+        breakpoint,
+        unit,
+        onQueryActive,
+        onQueryInactive,
+        queryId,
+        active: false,
+      });
     }
 
     return queryId;
