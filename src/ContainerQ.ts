@@ -40,7 +40,7 @@ interface QueryDescription {
 
 class ContainerQ {
   private _ro: ResizeObserver;
-  private _queryList: QueryDescription[] = [];
+  private _queryList = new Map<Element, Alteration[]>();
   private _querySum = 0;
 
   private _compare(n1: number, comparison: keyof typeof Comparison, n2: number) {
@@ -61,13 +61,10 @@ class ContainerQ {
   private _changeAltActiveState(element: Element, altToToggle: Alteration, activation: boolean) {
     let breakLoop = false;
 
-    for (let qd of this._queryList) {
-      if (qd.element === element) {
-        for (let alt of qd.alterations) {
-          if (alt === altToToggle) alt.active = activation;
-          breakLoop = true;
-          break;
-        }
+    for (let alt of this._queryList.get(element) as Alteration[]) {
+      if (alt === altToToggle) {
+        alt.active = activation;
+        break;
       }
     }
   }
@@ -112,9 +109,7 @@ class ContainerQ {
   constructor() {
     this._ro = new ResizeObserver((entries) => {
       entries.forEach((entry) => {
-        const entryAlerations = this._queryList.find((queryDescription) => {
-          return queryDescription.element === entry.target;
-        })?.alterations;
+        const entryAlerations = this._queryList.get(entry.target);
 
         entryAlerations?.forEach((alt) => {
           switch (alt.unit) {
@@ -170,27 +165,11 @@ class ContainerQ {
     const queryId = this._querySum;
     this._querySum++;
 
-    const queryIndex = this._queryList.findIndex((qd) => qd.element === element);
-    if (queryIndex === -1) {
-      this._queryList.push({
-        element,
-        alterations: [
-          {
-            property,
-            comparison,
-            breakpoint,
-            unit,
-            onQueryActive,
-            onQueryInactive,
-            queryId,
-            active: false,
-          },
-        ],
-      });
+    const previousAlterations = this._queryList.get(element) ?? [];
 
-      this._ro.observe(element);
-    } else {
-      this._queryList[queryIndex].alterations.push({
+    this._queryList.set(element, [
+      ...previousAlterations,
+      {
         property,
         comparison,
         breakpoint,
@@ -199,8 +178,10 @@ class ContainerQ {
         onQueryInactive,
         queryId,
         active: false,
-      });
-    }
+      },
+    ]);
+
+    this._ro.observe(element);
 
     return queryId;
   }
@@ -210,45 +191,51 @@ class ContainerQ {
   isQuerying(obj: number | Element): boolean | Alteration[] | undefined {
     if (typeof obj === "number") {
       let exists = false;
-      this._queryList.forEach((qd) => {
-        qd.alterations.forEach((alt) => {
-          if (alt.queryId === obj) exists = true;
-        });
-      });
+      let breakLoop = false;
+
+      for (let alterations of this._queryList.values()) {
+        for (let alt of alterations) {
+          if (alt.queryId === obj) {
+            breakLoop = true;
+            exists = true;
+            break;
+          }
+        }
+        if (breakLoop) break;
+      }
 
       return exists;
     }
 
-    const alterations = this._queryList.find((qd) => qd.element === obj)?.alterations;
-
+    const alterations = this._queryList.get(obj);
     return alterations;
   }
 
   stopQuerying(obj: number | Element) {
     if (typeof obj === "number") {
-      let stop = false;
-      let qdIndex = -1;
+      let breakLoop = false;
+      let elemetToRemove: Element | undefined = undefined;
 
-      for (let i = 0; i < this._queryList.length; i++) {
-        this._queryList[i].alterations = this._queryList[i].alterations.filter((alt) => {
+      for (let [element, alterations] of this._queryList) {
+        alterations = alterations.filter((alt) => {
           if (alt.queryId === obj) {
-            stop = true;
+            breakLoop = true;
             return false;
           }
           return true;
         });
 
-        if (this._queryList[i].alterations.length === 0) qdIndex = i;
+        if (alterations.length === 0) elemetToRemove = element;
 
-        if (stop) break;
+        if (breakLoop) break;
       }
 
-      if (qdIndex !== -1) {
-        this._ro.unobserve(this._queryList[qdIndex].element);
-        this._queryList.splice(qdIndex, 1);
+      if (elemetToRemove) {
+        this._queryList.delete(elemetToRemove);
+        this._ro.unobserve(elemetToRemove);
       }
     } else {
-      this._queryList = this._queryList.filter((qd) => qd.element !== obj);
+      this._queryList.delete(obj);
       this._ro.unobserve(obj);
     }
   }
