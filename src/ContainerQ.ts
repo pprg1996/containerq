@@ -139,9 +139,30 @@ class ContainerQ {
               const parentPaddingTop = Number(getComputedStyle(parent0).paddingBlockStart.slice(0, -2));
               const parentPaddingBottom = Number(getComputedStyle(parent0).paddingBlockEnd.slice(0, -2));
 
-              if (alt.property === "width")
-                size = ((parent0.offsetWidth - parentPaddingLeft - parentPaddingRight) / 100) * alt.breakpoint;
-              else size = ((parent0.offsetHeight - parentPaddingTop - parentPaddingBottom) / 100) * alt.breakpoint;
+              const parentBorderLeft = Number(getComputedStyle(parent0).borderInlineStartWidth.slice(0, -2));
+              const parentBorderRight = Number(getComputedStyle(parent0).borderInlineEndWidth.slice(0, -2));
+              const parentBorderTop = Number(getComputedStyle(parent0).borderBlockStartWidth.slice(0, -2));
+              const parentBorderBottom = Number(getComputedStyle(parent0).borderBlockEndWidth.slice(0, -2));
+
+              if (alt.property === "width") {
+                size =
+                  ((parent0.offsetWidth -
+                    parentPaddingLeft -
+                    parentPaddingRight -
+                    parentBorderLeft -
+                    parentBorderRight) /
+                    100) *
+                  alt.breakpoint;
+              } else {
+                size =
+                  ((parent0.offsetHeight -
+                    parentPaddingTop -
+                    parentPaddingBottom -
+                    parentBorderTop -
+                    parentBorderBottom) /
+                    100) *
+                  alt.breakpoint;
+              }
 
               this._evaluateProperty(alt, entry, size);
               break;
