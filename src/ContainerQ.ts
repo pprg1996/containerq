@@ -42,6 +42,7 @@ class ContainerQ {
   private _ro: ResizeObserver;
   private _queryList = new Map<Element, Alteration[]>();
   private _querySum = 0;
+  private _parents = new Map<Element, Set<Element>>();
 
   private _compare(n1: number, comparison: keyof typeof Comparison, n2: number) {
     switch (comparison) {
@@ -109,6 +110,51 @@ class ContainerQ {
   constructor() {
     this._ro = new ResizeObserver((entries) => {
       entries.forEach((entry) => {
+        const childrenElements = this._parents.get(entry.target);
+
+        childrenElements?.forEach((child) => {
+          const alterations = this._queryList.get(child);
+
+          alterations?.forEach((alt) => {
+            if (alt.unit === "%") {
+              const parent0 = child.parentElement as HTMLElement;
+              let size = 0;
+
+              const parentPaddingLeft = Number(getComputedStyle(parent0).paddingInlineStart.slice(0, -2));
+              const parentPaddingRight = Number(getComputedStyle(parent0).paddingInlineEnd.slice(0, -2));
+              const parentPaddingTop = Number(getComputedStyle(parent0).paddingBlockStart.slice(0, -2));
+              const parentPaddingBottom = Number(getComputedStyle(parent0).paddingBlockEnd.slice(0, -2));
+
+              const parentBorderLeft = Number(getComputedStyle(parent0).borderInlineStartWidth.slice(0, -2));
+              const parentBorderRight = Number(getComputedStyle(parent0).borderInlineEndWidth.slice(0, -2));
+              const parentBorderTop = Number(getComputedStyle(parent0).borderBlockStartWidth.slice(0, -2));
+              const parentBorderBottom = Number(getComputedStyle(parent0).borderBlockEndWidth.slice(0, -2));
+
+              if (alt.property === "width") {
+                size =
+                  ((parent0.offsetWidth -
+                    parentPaddingLeft -
+                    parentPaddingRight -
+                    parentBorderLeft -
+                    parentBorderRight) /
+                    100) *
+                  alt.breakpoint;
+              } else {
+                size =
+                  ((parent0.offsetHeight -
+                    parentPaddingTop -
+                    parentPaddingBottom -
+                    parentBorderTop -
+                    parentBorderBottom) /
+                    100) *
+                  alt.breakpoint;
+              }
+
+              this._evaluateProperty(alt, new ResizeObserverEntry(child), size);
+            }
+          });
+        });
+
         const entryAlerations = this._queryList.get(entry.target);
 
         entryAlerations?.forEach((alt) => {
@@ -202,6 +248,18 @@ class ContainerQ {
       },
     ]);
 
+    if (unit === "%") {
+      const parentElement = element.parentElement;
+
+      if (parentElement) {
+        const childrenElements = this._parents.get(parentElement) ?? new Set<Element>();
+        childrenElements.add(element);
+        this._parents.set(parentElement, childrenElements);
+
+        this._ro.observe(parentElement);
+      }
+    }
+
     this._ro.observe(element);
 
     return queryId;
@@ -235,27 +293,55 @@ class ContainerQ {
   stopQuerying(obj: number | Element) {
     if (typeof obj === "number") {
       let breakLoop = false;
-      let elemetToRemove: Element | undefined = undefined;
+      let removeElement = false;
+      let elementToMod: Element | undefined = undefined;
+      let newAlterations: Alteration[] = [];
 
       for (let [element, alterations] of this._queryList) {
-        alterations = alterations.filter((alt) => {
+        let percentageQueries = 0;
+
+        newAlterations = alterations.filter((alt) => {
+          if (alt.unit === "%") percentageQueries++;
+
           if (alt.queryId === obj) {
+            elementToMod = element;
+            percentageQueries--;
             breakLoop = true;
             return false;
           }
           return true;
         });
 
-        if (alterations.length === 0) elemetToRemove = element;
+        if (percentageQueries === 0) {
+          const parent = element.parentElement as Element;
+          this._parents.get(parent)?.delete(element);
+
+          if (this._parents.get(parent)?.size === 0) {
+            this._parents.delete(parent);
+            this._ro.unobserve(parent);
+          }
+        }
+
+        if (newAlterations.length === 0) removeElement = true;
 
         if (breakLoop) break;
       }
 
-      if (elemetToRemove) {
-        this._queryList.delete(elemetToRemove);
-        this._ro.unobserve(elemetToRemove);
+      if (removeElement && elementToMod) {
+        this._queryList.delete(elementToMod);
+        this._ro.unobserve(elementToMod);
+      } else if (elementToMod) {
+        this._queryList.set(elementToMod, newAlterations);
       }
     } else {
+      const parent = obj.parentElement as Element;
+      this._parents.get(parent)?.delete(obj);
+
+      if (this._parents.get(parent)?.size === 0) {
+        this._parents.delete(parent);
+        this._ro.unobserve(parent);
+      }
+
       this._queryList.delete(obj);
       this._ro.unobserve(obj);
     }
