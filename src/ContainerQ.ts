@@ -39,12 +39,13 @@ interface QueryDescription {
 //#endregion
 
 class ContainerQ {
-  private _ro: ResizeObserver;
-  private _queryList = new Map<Element, Alteration[]>();
-  private _querySum = 0;
-  private _parents = new Map<Element, Set<Element>>();
+  #ro: ResizeObserver;
+  #queryList = new Map<Element, Alteration[]>();
+  #querySum = 0;
+  #parents = new Map<Element, Set<Element>>();
 
-  private _compare(n1: number, comparison: keyof typeof Comparison, n2: number) {
+  // @ts-ignore
+  #compare(n1: number, comparison: keyof typeof Comparison, n2: number) {
     switch (comparison) {
       case "<":
         return n1 < n2;
@@ -59,10 +60,11 @@ class ContainerQ {
     }
   }
 
-  private _changeAltActiveState(element: Element, altToToggle: Alteration, activation: boolean) {
+  // @ts-ignore
+  #changeAltActiveState(element: Element, altToToggle: Alteration, activation: boolean) {
     let breakLoop = false;
 
-    for (let alt of this._queryList.get(element) as Alteration[]) {
+    for (let alt of this.#queryList.get(element) as Alteration[]) {
       if (alt === altToToggle) {
         alt.active = activation;
         break;
@@ -70,36 +72,37 @@ class ContainerQ {
     }
   }
 
-  private _evaluateProperty(alt: Alteration, entry: ResizeObserverEntry, size: number) {
+  // @ts-ignore
+  #evaluateProperty(alt: Alteration, entry: ResizeObserverEntry, size: number) {
     switch (alt.property) {
       case "width":
-        if (this._compare(entry.borderBoxSize[0].inlineSize, alt.comparison, size)) {
+        if (this.#compare(entry.borderBoxSize[0].inlineSize, alt.comparison, size)) {
           if (typeof alt.onQueryActive === "string") entry.target.classList.add(alt.onQueryActive);
           else if (!alt.active) {
             alt.onQueryActive();
           }
 
-          this._changeAltActiveState(entry.target, alt, true);
+          this.#changeAltActiveState(entry.target, alt, true);
         } else {
           if (typeof alt.onQueryActive === "string") entry.target.classList.remove(alt.onQueryActive);
           if (typeof alt.onQueryInactive === "function" && alt.active) alt.onQueryInactive();
 
-          this._changeAltActiveState(entry.target, alt, false);
+          this.#changeAltActiveState(entry.target, alt, false);
         }
         break;
       case "height":
-        if (this._compare(entry.borderBoxSize[0].blockSize, alt.comparison, size)) {
+        if (this.#compare(entry.borderBoxSize[0].blockSize, alt.comparison, size)) {
           if (typeof alt.onQueryActive === "string") entry.target.classList.add(alt.onQueryActive);
           else if (!alt.active) {
             alt.onQueryActive();
           }
 
-          this._changeAltActiveState(entry.target, alt, true);
+          this.#changeAltActiveState(entry.target, alt, true);
         } else {
           if (typeof alt.onQueryActive === "string") entry.target.classList.remove(alt.onQueryActive);
           if (typeof alt.onQueryInactive === "function" && alt.active) alt.onQueryInactive();
 
-          this._changeAltActiveState(entry.target, alt, false);
+          this.#changeAltActiveState(entry.target, alt, false);
         }
         break;
       default:
@@ -108,12 +111,12 @@ class ContainerQ {
   }
 
   constructor() {
-    this._ro = new ResizeObserver((entries) => {
+    this.#ro = new ResizeObserver((entries) => {
       entries.forEach((entry) => {
-        const childrenElements = this._parents.get(entry.target);
+        const childrenElements = this.#parents.get(entry.target);
 
         childrenElements?.forEach((child) => {
-          const alterations = this._queryList.get(child);
+          const alterations = this.#queryList.get(child);
 
           alterations?.forEach((alt) => {
             if (alt.unit === "%") {
@@ -150,31 +153,31 @@ class ContainerQ {
                   alt.breakpoint;
               }
 
-              this._evaluateProperty(alt, new ResizeObserverEntry(child), size);
+              this.#evaluateProperty(alt, new ResizeObserverEntry(child), size);
             }
           });
         });
 
-        const entryAlerations = this._queryList.get(entry.target);
+        const entryAlerations = this.#queryList.get(entry.target);
 
         entryAlerations?.forEach((alt) => {
           switch (alt.unit) {
             case "px":
-              this._evaluateProperty(alt, entry, alt.breakpoint);
+              this.#evaluateProperty(alt, entry, alt.breakpoint);
               break;
             case "rem":
               const html = document.querySelector("html") as HTMLHtmlElement;
               const fontSizeString = getComputedStyle(html).fontSize;
               const fontSize = Number(fontSizeString.slice(0, -2));
 
-              this._evaluateProperty(alt, entry, fontSize * alt.breakpoint);
+              this.#evaluateProperty(alt, entry, fontSize * alt.breakpoint);
               break;
             case "em":
               const parent = (entry.target.parentElement ?? document.querySelector("html")) as Element;
               const parentFontSizeString = getComputedStyle(parent).fontSize;
               const parentFontSize = Number(parentFontSizeString.slice(0, -2));
 
-              this._evaluateProperty(alt, entry, parentFontSize * alt.breakpoint);
+              this.#evaluateProperty(alt, entry, parentFontSize * alt.breakpoint);
               break;
             case "%":
               const parent0 = entry.target.parentElement as HTMLElement;
@@ -210,7 +213,7 @@ class ContainerQ {
                   alt.breakpoint;
               }
 
-              this._evaluateProperty(alt, entry, size);
+              this.#evaluateProperty(alt, entry, size);
               break;
             default:
               break;
@@ -229,12 +232,12 @@ class ContainerQ {
     onQueryActive: string | Function,
     onQueryInactive?: Function,
   ): number {
-    const queryId = this._querySum;
-    this._querySum++;
+    const queryId = this.#querySum;
+    this.#querySum++;
 
-    const previousAlterations = this._queryList.get(element) ?? [];
+    const previousAlterations = this.#queryList.get(element) ?? [];
 
-    this._queryList.set(element, [
+    this.#queryList.set(element, [
       ...previousAlterations,
       {
         property,
@@ -252,15 +255,15 @@ class ContainerQ {
       const parentElement = element.parentElement;
 
       if (parentElement) {
-        const childrenElements = this._parents.get(parentElement) ?? new Set<Element>();
+        const childrenElements = this.#parents.get(parentElement) ?? new Set<Element>();
         childrenElements.add(element);
-        this._parents.set(parentElement, childrenElements);
+        this.#parents.set(parentElement, childrenElements);
 
-        this._ro.observe(parentElement);
+        this.#ro.observe(parentElement);
       }
     }
 
-    this._ro.observe(element);
+    this.#ro.observe(element);
 
     return queryId;
   }
@@ -272,7 +275,7 @@ class ContainerQ {
       let exists = false;
       let breakLoop = false;
 
-      for (let alterations of this._queryList.values()) {
+      for (let alterations of this.#queryList.values()) {
         for (let alt of alterations) {
           if (alt.queryId === obj) {
             breakLoop = true;
@@ -286,7 +289,7 @@ class ContainerQ {
       return exists;
     }
 
-    const alterations = this._queryList.get(obj);
+    const alterations = this.#queryList.get(obj);
     return alterations;
   }
 
@@ -297,7 +300,7 @@ class ContainerQ {
       let elementToMod: Element | undefined = undefined;
       let newAlterations: Alteration[] = [];
 
-      for (let [element, alterations] of this._queryList) {
+      for (let [element, alterations] of this.#queryList) {
         let percentageQueries = 0;
 
         newAlterations = alterations.filter((alt) => {
@@ -314,11 +317,11 @@ class ContainerQ {
 
         if (percentageQueries === 0) {
           const parent = element.parentElement as Element;
-          this._parents.get(parent)?.delete(element);
+          this.#parents.get(parent)?.delete(element);
 
-          if (this._parents.get(parent)?.size === 0) {
-            this._parents.delete(parent);
-            this._ro.unobserve(parent);
+          if (this.#parents.get(parent)?.size === 0) {
+            this.#parents.delete(parent);
+            this.#ro.unobserve(parent);
           }
         }
 
@@ -328,22 +331,22 @@ class ContainerQ {
       }
 
       if (removeElement && elementToMod) {
-        this._queryList.delete(elementToMod);
-        this._ro.unobserve(elementToMod);
+        this.#queryList.delete(elementToMod);
+        this.#ro.unobserve(elementToMod);
       } else if (elementToMod) {
-        this._queryList.set(elementToMod, newAlterations);
+        this.#queryList.set(elementToMod, newAlterations);
       }
     } else {
       const parent = obj.parentElement as Element;
-      this._parents.get(parent)?.delete(obj);
+      this.#parents.get(parent)?.delete(obj);
 
-      if (this._parents.get(parent)?.size === 0) {
-        this._parents.delete(parent);
-        this._ro.unobserve(parent);
+      if (this.#parents.get(parent)?.size === 0) {
+        this.#parents.delete(parent);
+        this.#ro.unobserve(parent);
       }
 
-      this._queryList.delete(obj);
-      this._ro.unobserve(obj);
+      this.#queryList.delete(obj);
+      this.#ro.unobserve(obj);
     }
   }
 }
