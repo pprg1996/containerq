@@ -229,6 +229,23 @@ class ContainerQ {
     comparison: keyof typeof Comparison,
     breakpoint: number,
     unit: keyof typeof Unit,
+    className: string,
+  ): number;
+  query(
+    element: Element,
+    property: keyof typeof Property,
+    comparison: keyof typeof Comparison,
+    breakpoint: number,
+    unit: keyof typeof Unit,
+    onQueryActive: Function,
+    onQueryInactive?: Function,
+  ): number;
+  query(
+    element: Element,
+    property: keyof typeof Property,
+    comparison: keyof typeof Comparison,
+    breakpoint: number,
+    unit: keyof typeof Unit,
     onQueryActive: string | Function,
     onQueryInactive?: Function,
   ): number {
@@ -268,8 +285,8 @@ class ContainerQ {
     return queryId;
   }
 
-  isQuerying(obj: number): boolean;
-  isQuerying(obj: Element): Alteration[] | undefined;
+  isQuerying(queryId: number): boolean;
+  isQuerying(element: Element): Alteration[] | undefined;
   isQuerying(obj: number | Element): boolean | Alteration[] | undefined {
     if (typeof obj === "number") {
       let exists = false;
@@ -293,6 +310,8 @@ class ContainerQ {
     return alterations;
   }
 
+  stopQuerying(queryId: number): void;
+  stopQuerying(element: Element): void;
   stopQuerying(obj: number | Element) {
     if (typeof obj === "number") {
       let breakLoop = false;
