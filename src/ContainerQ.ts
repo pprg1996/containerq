@@ -349,6 +349,13 @@ class ContainerQ {
       this.#ro.unobserve(obj);
     }
   }
+
+  stopQueryingAll() {
+    this.#ro.disconnect();
+    this.#queryList.clear();
+    this.#parents.clear();
+    this.#querySum = 0;
+  }
 }
 
 export { ContainerQ };
