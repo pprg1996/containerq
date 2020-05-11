@@ -1,42 +1,5 @@
 import { ResizeObserver, ResizeObserverEntry } from "@juggle/resize-observer";
-
-//#region types
-enum Unit {
-  px,
-  rem,
-  em,
-  "%",
-}
-
-enum Comparison {
-  "=",
-  "<",
-  "<=",
-  ">",
-  ">=",
-}
-
-enum Property {
-  width,
-  height,
-}
-
-interface Alteration {
-  property: keyof typeof Property;
-  comparison: keyof typeof Comparison;
-  breakpoint: number;
-  unit: keyof typeof Unit;
-  onQueryActive: string | Function;
-  onQueryInactive: Function | undefined;
-  queryId: number;
-  active: boolean;
-}
-
-interface QueryDescription {
-  element: Element;
-  alterations: Alteration[];
-}
-//#endregion
+import type { Alteration, Comparison, Property, Unit } from "./types";
 
 class ContainerQ {
   #ro: ResizeObserver;
@@ -375,6 +338,23 @@ class ContainerQ {
     this.#parents.clear();
     this.#querySum = 0;
   }
+
+  // For debugging purposes
+  // get querySum() {
+  //   return this.#querySum;
+  // }
+
+  // get queryList() {
+  //   return this.#queryList;
+  // }
+
+  // get parents() {
+  //   return this.#parents;
+  // }
+
+  // get ro() {
+  //   return this.#ro;
+  // }
 }
 
 export { ContainerQ };

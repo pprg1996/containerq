@@ -2,7 +2,7 @@ const path = require("path");
 
 module.exports = {
   mode: "production",
-  entry: "./src/ContainerQ.ts",
+  entry: "./src/index.ts",
   devtool: "none",
   module: {
     rules: [
@@ -17,11 +17,12 @@ module.exports = {
     extensions: [".ts", ".tsx", ".js", ".json"],
   },
   output: {
-    filename: "ContainerQ.js",
+    filename: "index.js",
     path: path.resolve(__dirname, "dist"),
     libraryTarget: "umd",
   },
   externals: {
     "@juggle/resize-observer": "@juggle/resize-observer",
+    react: "react",
   },
 };

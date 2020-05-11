@@ -2,8 +2,8 @@
   "name": "containerq",
   "version": "1.0.12",
   "description": "Easily add classes to elements based on their dimensions",
-  "main": "dist/ContainerQ.js",
-  "types": "dist/ContainerQ.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build-all": "tsc --emitDeclarationOnly && webpack",
     "build-types": "tsc --emitDeclarationOnly",
@@ -30,6 +30,7 @@
     "@babel/plugin-proposal-private-methods": "^7.8.3",
     "@babel/preset-env": "^7.9.5",
     "@babel/preset-typescript": "^7.9.0",
+    "@types/react": "^16.9.34",
     "babel-loader": "^8.1.0",
     "typescript": "^3.8.3",
     "webpack": "^4.43.0",
