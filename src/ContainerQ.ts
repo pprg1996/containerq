@@ -248,28 +248,39 @@ class ContainerQ {
     return queryId;
   }
 
-  isQuerying(queryId: number): boolean;
+  isQuerying(queryId: number): Alteration | undefined;
   isQuerying(element: Element): Alteration[] | undefined;
-  isQuerying(obj: number | Element): boolean | Alteration[] | undefined {
+  isQuerying(obj: number | Element): Alteration | Alteration[] | undefined {
     if (typeof obj === "number") {
-      let exists = false;
+      let altToReturn: Alteration | undefined = undefined;
       let breakLoop = false;
 
       for (let alterations of this.#queryList.values()) {
         for (let alt of alterations) {
           if (alt.queryId === obj) {
             breakLoop = true;
-            exists = true;
+            altToReturn = alt;
             break;
           }
         }
         if (breakLoop) break;
       }
 
-      return exists;
+      if (altToReturn) return { ...altToReturn };
+      return altToReturn;
     }
 
     const alterations = this.#queryList.get(obj);
+
+    if (alterations) {
+      let altsToReturn: Alteration[] = [];
+      for (let alt of alterations) {
+        altsToReturn.push({ ...alt });
+      }
+
+      return altsToReturn;
+    }
+
     return alterations;
   }
 
