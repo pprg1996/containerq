@@ -5,7 +5,7 @@ import { Property, Comparison, Unit } from "../types";
 const cq = new ContainerQ();
 
 // For debugging purposes
-// (window as any).cq2 = cq;
+// (window as any).cq = cq;
 
 export interface QueryProperties {
   property: keyof typeof Property;

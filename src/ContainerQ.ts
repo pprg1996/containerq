@@ -1,9 +1,9 @@
 import { ResizeObserver, ResizeObserverEntry } from "@juggle/resize-observer";
-import type { Alteration, Comparison, Property, Unit } from "./types";
+import type { QueryInfo, Comparison, Property, Unit } from "./types";
 
 class ContainerQ {
   #ro: ResizeObserver;
-  #queryList = new Map<Element, Alteration[]>();
+  #queryList = new Map<Element, QueryInfo[]>();
   #querySum = 0;
   #parents = new Map<Element, Set<Element>>();
 
@@ -24,48 +24,48 @@ class ContainerQ {
   }
 
   // @ts-ignore
-  #changeAltActiveState(element: Element, altToToggle: Alteration, activation: boolean) {
+  #changeQueryInfoActiveState(element: Element, queryInfoToToggle: QueryInfo, activation: boolean) {
     let breakLoop = false;
 
-    for (let alt of this.#queryList.get(element) as Alteration[]) {
-      if (alt === altToToggle) {
-        alt.active = activation;
+    for (let queryInfo of this.#queryList.get(element) as QueryInfo[]) {
+      if (queryInfo === queryInfoToToggle) {
+        queryInfo.active = activation;
         break;
       }
     }
   }
 
   // @ts-ignore
-  #evaluateProperty(alt: Alteration, entry: ResizeObserverEntry, size: number) {
-    switch (alt.property) {
+  #evaluateProperty(queryInfo: QueryInfo, entry: ResizeObserverEntry, size: number) {
+    switch (queryInfo.property) {
       case "width":
-        if (this.#compare(entry.borderBoxSize[0].inlineSize, alt.comparison, size)) {
-          if (typeof alt.onQueryActive === "string") entry.target.classList.add(alt.onQueryActive);
-          else if (!alt.active) {
-            alt.onQueryActive();
+        if (this.#compare(entry.borderBoxSize[0].inlineSize, queryInfo.comparison, size)) {
+          if (typeof queryInfo.onQueryActive === "string") entry.target.classList.add(queryInfo.onQueryActive);
+          else if (!queryInfo.active) {
+            queryInfo.onQueryActive();
           }
 
-          this.#changeAltActiveState(entry.target, alt, true);
+          this.#changeQueryInfoActiveState(entry.target, queryInfo, true);
         } else {
-          if (typeof alt.onQueryActive === "string") entry.target.classList.remove(alt.onQueryActive);
-          if (typeof alt.onQueryInactive === "function" && alt.active) alt.onQueryInactive();
+          if (typeof queryInfo.onQueryActive === "string") entry.target.classList.remove(queryInfo.onQueryActive);
+          if (typeof queryInfo.onQueryInactive === "function" && queryInfo.active) queryInfo.onQueryInactive();
 
-          this.#changeAltActiveState(entry.target, alt, false);
+          this.#changeQueryInfoActiveState(entry.target, queryInfo, false);
         }
         break;
       case "height":
-        if (this.#compare(entry.borderBoxSize[0].blockSize, alt.comparison, size)) {
-          if (typeof alt.onQueryActive === "string") entry.target.classList.add(alt.onQueryActive);
-          else if (!alt.active) {
-            alt.onQueryActive();
+        if (this.#compare(entry.borderBoxSize[0].blockSize, queryInfo.comparison, size)) {
+          if (typeof queryInfo.onQueryActive === "string") entry.target.classList.add(queryInfo.onQueryActive);
+          else if (!queryInfo.active) {
+            queryInfo.onQueryActive();
           }
 
-          this.#changeAltActiveState(entry.target, alt, true);
+          this.#changeQueryInfoActiveState(entry.target, queryInfo, true);
         } else {
-          if (typeof alt.onQueryActive === "string") entry.target.classList.remove(alt.onQueryActive);
-          if (typeof alt.onQueryInactive === "function" && alt.active) alt.onQueryInactive();
+          if (typeof queryInfo.onQueryActive === "string") entry.target.classList.remove(queryInfo.onQueryActive);
+          if (typeof queryInfo.onQueryInactive === "function" && queryInfo.active) queryInfo.onQueryInactive();
 
-          this.#changeAltActiveState(entry.target, alt, false);
+          this.#changeQueryInfoActiveState(entry.target, queryInfo, false);
         }
         break;
       default:
@@ -74,15 +74,15 @@ class ContainerQ {
   }
 
   constructor() {
-    this.#ro = new ResizeObserver((entries) => {
-      entries.forEach((entry) => {
+    this.#ro = new ResizeObserver(entries => {
+      entries.forEach(entry => {
         const childrenElements = this.#parents.get(entry.target);
 
-        childrenElements?.forEach((child) => {
-          const alterations = this.#queryList.get(child);
+        childrenElements?.forEach(child => {
+          const queryInfoList = this.#queryList.get(child);
 
-          alterations?.forEach((alt) => {
-            if (alt.unit === "%") {
+          queryInfoList?.forEach(queryInfo => {
+            if (queryInfo.unit === "%") {
               const parent0 = child.parentElement as HTMLElement;
               let size = 0;
 
@@ -96,7 +96,7 @@ class ContainerQ {
               const parentBorderTop = Number(getComputedStyle(parent0).borderBlockStartWidth.slice(0, -2));
               const parentBorderBottom = Number(getComputedStyle(parent0).borderBlockEndWidth.slice(0, -2));
 
-              if (alt.property === "width") {
+              if (queryInfo.property === "width") {
                 size =
                   ((parent0.offsetWidth -
                     parentPaddingLeft -
@@ -104,7 +104,7 @@ class ContainerQ {
                     parentBorderLeft -
                     parentBorderRight) /
                     100) *
-                  alt.breakpoint;
+                  queryInfo.breakpoint;
               } else {
                 size =
                   ((parent0.offsetHeight -
@@ -113,34 +113,34 @@ class ContainerQ {
                     parentBorderTop -
                     parentBorderBottom) /
                     100) *
-                  alt.breakpoint;
+                  queryInfo.breakpoint;
               }
 
-              this.#evaluateProperty(alt, new ResizeObserverEntry(child), size);
+              this.#evaluateProperty(queryInfo, new ResizeObserverEntry(child), size);
             }
           });
         });
 
         const entryAlerations = this.#queryList.get(entry.target);
 
-        entryAlerations?.forEach((alt) => {
-          switch (alt.unit) {
+        entryAlerations?.forEach(queryInfo => {
+          switch (queryInfo.unit) {
             case "px":
-              this.#evaluateProperty(alt, entry, alt.breakpoint);
+              this.#evaluateProperty(queryInfo, entry, queryInfo.breakpoint);
               break;
             case "rem":
               const html = document.querySelector("html") as HTMLHtmlElement;
               const fontSizeString = getComputedStyle(html).fontSize;
               const fontSize = Number(fontSizeString.slice(0, -2));
 
-              this.#evaluateProperty(alt, entry, fontSize * alt.breakpoint);
+              this.#evaluateProperty(queryInfo, entry, fontSize * queryInfo.breakpoint);
               break;
             case "em":
               const parent = (entry.target.parentElement ?? document.querySelector("html")) as Element;
               const parentFontSizeString = getComputedStyle(parent).fontSize;
               const parentFontSize = Number(parentFontSizeString.slice(0, -2));
 
-              this.#evaluateProperty(alt, entry, parentFontSize * alt.breakpoint);
+              this.#evaluateProperty(queryInfo, entry, parentFontSize * queryInfo.breakpoint);
               break;
             case "%":
               const parent0 = entry.target.parentElement as HTMLElement;
@@ -156,7 +156,7 @@ class ContainerQ {
               const parentBorderTop = Number(getComputedStyle(parent0).borderBlockStartWidth.slice(0, -2));
               const parentBorderBottom = Number(getComputedStyle(parent0).borderBlockEndWidth.slice(0, -2));
 
-              if (alt.property === "width") {
+              if (queryInfo.property === "width") {
                 size =
                   ((parent0.offsetWidth -
                     parentPaddingLeft -
@@ -164,7 +164,7 @@ class ContainerQ {
                     parentBorderLeft -
                     parentBorderRight) /
                     100) *
-                  alt.breakpoint;
+                  queryInfo.breakpoint;
               } else {
                 size =
                   ((parent0.offsetHeight -
@@ -173,10 +173,10 @@ class ContainerQ {
                     parentBorderTop -
                     parentBorderBottom) /
                     100) *
-                  alt.breakpoint;
+                  queryInfo.breakpoint;
               }
 
-              this.#evaluateProperty(alt, entry, size);
+              this.#evaluateProperty(queryInfo, entry, size);
               break;
             default:
               break;
@@ -215,10 +215,10 @@ class ContainerQ {
     const queryId = this.#querySum;
     this.#querySum++;
 
-    const previousAlterations = this.#queryList.get(element) ?? [];
+    const previousQueryInfoList = this.#queryList.get(element) ?? [];
 
     this.#queryList.set(element, [
-      ...previousAlterations,
+      ...previousQueryInfoList,
       {
         property,
         comparison,
@@ -248,40 +248,40 @@ class ContainerQ {
     return queryId;
   }
 
-  isQuerying(queryId: number): Alteration | undefined;
-  isQuerying(element: Element): Alteration[] | undefined;
-  isQuerying(obj: number | Element): Alteration | Alteration[] | undefined {
+  isQuerying(queryId: number): QueryInfo | undefined;
+  isQuerying(element: Element): QueryInfo[] | undefined;
+  isQuerying(obj: number | Element): QueryInfo | QueryInfo[] | undefined {
     if (typeof obj === "number") {
-      let altToReturn: Alteration | undefined = undefined;
+      let queryInfoToReturn: QueryInfo | undefined = undefined;
       let breakLoop = false;
 
-      for (let alterations of this.#queryList.values()) {
-        for (let alt of alterations) {
-          if (alt.queryId === obj) {
+      for (let queryInfoList of this.#queryList.values()) {
+        for (let queryInfo of queryInfoList) {
+          if (queryInfo.queryId === obj) {
             breakLoop = true;
-            altToReturn = alt;
+            queryInfoToReturn = queryInfo;
             break;
           }
         }
         if (breakLoop) break;
       }
 
-      if (altToReturn) return { ...altToReturn };
-      return altToReturn;
+      if (queryInfoToReturn) return { ...queryInfoToReturn };
+      return queryInfoToReturn;
     }
 
-    const alterations = this.#queryList.get(obj);
+    const queryInfoList = this.#queryList.get(obj);
 
-    if (alterations) {
-      let altsToReturn: Alteration[] = [];
-      for (let alt of alterations) {
-        altsToReturn.push({ ...alt });
+    if (queryInfoList) {
+      let queryInfoListToReturn: QueryInfo[] = [];
+      for (let queryInfo of queryInfoList) {
+        queryInfoListToReturn.push({ ...queryInfo });
       }
 
-      return altsToReturn;
+      return queryInfoListToReturn;
     }
 
-    return alterations;
+    return queryInfoList;
   }
 
   stopQuerying(queryId: number): void;
@@ -291,15 +291,15 @@ class ContainerQ {
       let breakLoop = false;
       let removeElement = false;
       let elementToMod: Element | undefined = undefined;
-      let newAlterations: Alteration[] = [];
+      let newQueryInfoList: QueryInfo[] = [];
 
-      for (let [element, alterations] of this.#queryList) {
+      for (let [element, queryInfoList] of this.#queryList) {
         let percentageQueries = 0;
 
-        newAlterations = alterations.filter((alt) => {
-          if (alt.unit === "%") percentageQueries++;
+        newQueryInfoList = queryInfoList.filter(queryInfo => {
+          if (queryInfo.unit === "%") percentageQueries++;
 
-          if (alt.queryId === obj) {
+          if (queryInfo.queryId === obj) {
             elementToMod = element;
             percentageQueries--;
             breakLoop = true;
@@ -318,7 +318,7 @@ class ContainerQ {
           }
         }
 
-        if (newAlterations.length === 0) removeElement = true;
+        if (newQueryInfoList.length === 0) removeElement = true;
 
         if (breakLoop) break;
       }
@@ -327,7 +327,7 @@ class ContainerQ {
         this.#queryList.delete(elementToMod);
         this.#ro.unobserve(elementToMod);
       } else if (elementToMod) {
-        this.#queryList.set(elementToMod, newAlterations);
+        this.#queryList.set(elementToMod, newQueryInfoList);
       }
     } else {
       const parent = obj.parentElement as Element;

@@ -18,7 +18,7 @@ export enum Property {
   height,
 }
 
-export interface Alteration {
+export interface QueryInfo {
   property: keyof typeof Property;
   comparison: keyof typeof Comparison;
   breakpoint: number;
